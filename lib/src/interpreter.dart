@@ -691,9 +691,9 @@ class Interpreter implements ExprVisitor, StmtVisitor {
     curContext = save;
 
     for (final method in stmt.methods) {
-      if (klass.contains(method.internalName)) {
-        throw HTErr_Defined(method.name, method.keyword.line, method.keyword.column, curFileName);
-      }
+      // if (klass.contains(method.internalName)) {
+      //   throw HTErr_Defined(method.name, method.keyword.line, method.keyword.column, curFileName);
+      // }
 
       HT_Function func;
       HT_External externFunc;
