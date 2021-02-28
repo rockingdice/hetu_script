@@ -66,6 +66,7 @@ class Interpreter implements ExprVisitor, StmtVisitor {
   }) {
     curContext = context ?? _globals;
     final tokens = Lexer().lex(content);
+    print('tokens: \n$tokens');
     final statements =
         Parser(this).parse(tokens, fileName: fileName, style: style);
     Resolver(this).resolve(statements, fileName: fileName);
@@ -239,13 +240,13 @@ class Interpreter implements ExprVisitor, StmtVisitor {
     return _globals.fetch(key, null, null, this, from: _globals.fullName);
   }
 
-  dynamic invoke(String name, {String classname, List<dynamic> args}) {
+  dynamic invoke(String name, {String classname, List<dynamic> args, Map<String, dynamic> namedArgs}) {
     HT_Error.clear();
     try {
       if (classname == null) {
         var func = _globals.fetch(name, null, null, this, recursive: false);
         if (func is HT_Function) {
-          return func.call(this, null, null, args ?? []);
+          return func.call(this, null, null, args ?? [], namedArgs: namedArgs ?? {});
         } else {
           throw HTErr_Undefined(name, null, null, curFileName);
         }
@@ -256,7 +257,7 @@ class Interpreter implements ExprVisitor, StmtVisitor {
           // 只能调用公共函数
           var func = klass.fetch(name, null, null, this, recursive: false);
           if (func is HT_Function) {
-            return func.call(this, null, null, args ?? []);
+            return func.call(this, null, null, args ?? [], namedArgs: namedArgs ?? {});
           } else {
             throw HTErr_Callable(name, null, null, curFileName);
           }
@@ -468,7 +469,9 @@ class Interpreter implements ExprVisitor, StmtVisitor {
   dynamic visitCallExpr(CallExpr expr) {
     var callee = evaluateExpr(expr.callee);
     var args = <dynamic>[];
+    var namedArgs = <String, dynamic>{};
     for (final arg in expr.args) {
+      if (arg.type )
       var value = evaluateExpr(arg);
       args.add(value);
     }
@@ -522,6 +525,12 @@ class Interpreter implements ExprVisitor, StmtVisitor {
 
   @override
   dynamic visitThisExpr(ThisExpr expr) => _getValue(HT_Lexicon.THIS, expr);
+
+  @override
+  dynamic visitNamedVarExpr(NamedVarExpr expr) {
+    var value = evaluateExpr(expr.value);
+    return value;
+  }
 
   @override
   dynamic visitSubGetExpr(SubGetExpr expr) {

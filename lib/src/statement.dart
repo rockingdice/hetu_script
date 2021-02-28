@@ -1,6 +1,6 @@
-import 'token.dart';
-import 'lexicon.dart';
 import 'expression.dart';
+import 'lexicon.dart';
+import 'token.dart';
 import 'value.dart';
 
 /// 抽象的访问者模式，包含访问语句的抽象语法树的接口
@@ -90,8 +90,9 @@ class VarDeclStmt extends Stmt {
 
   final bool isOptional;
 
-  VarDeclStmt(
-    this.name, {
+  final bool isNamed;
+
+  VarDeclStmt(this.name, {
     this.declType = HT_Type.ANY,
     this.initializer,
     this.typeInferrence = true,
@@ -99,6 +100,7 @@ class VarDeclStmt extends Stmt {
     //this.isExtern = false,
     this.isStatic = false,
     this.isOptional = false,
+    this.isNamed = false,
   });
 }
 
@@ -212,6 +214,7 @@ class FuncDeclStmt extends Stmt {
   final HT_Type returnType;
 
   String _internalName;
+
   String get internalName => _internalName;
 
   final String className;
@@ -232,13 +235,13 @@ class FuncDeclStmt extends Stmt {
 
   FuncDeclStmt(this.keyword, this.name, this.returnType, this.params,
       {List<String> typeParams,
-      this.arity = 0,
-      this.definition,
-      this.className,
-      this.isExtern = false,
-      this.isStatic = false,
-      this.isConst = false,
-      this.funcType = FuncStmtType.normal}) {
+        this.arity = 0,
+        this.definition,
+        this.className,
+        this.isExtern = false,
+        this.isStatic = false,
+        this.isConst = false,
+        this.funcType = FuncStmtType.normal}) {
     definition ??= <Stmt>[];
     if (funcType == FuncStmtType.constructor) {
       _internalName = HT_Lexicon.constructor + name;
@@ -279,7 +282,8 @@ class ClassDeclStmt extends Stmt {
 
   final List<FuncDeclStmt> methods;
 
-  ClassDeclStmt(this.keyword, this.name, this.superClass, this.superClassType, this.variables, this.methods,
+  ClassDeclStmt(this.keyword, this.name, this.superClass, this.superClassType,
+      this.variables, this.methods,
       {List<String> typeParams}) {
     if (typeParams != null) this.typeParams.addAll(typeParams);
   }

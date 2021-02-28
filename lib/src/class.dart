@@ -154,7 +154,7 @@ class HT_Class extends HT_Namespace {
   /// Create a instance from this class.
   /// TODO：对象初始化时从父类逐个调用构造函数
   HT_Instance createInstance(Interpreter interpreter, int line, int column, HT_Namespace closure,
-      {List<HT_Type> typeArgs, String initterName, List<dynamic> args}) {
+      {List<HT_Type> typeArgs, String initterName, List<dynamic> args, Map<String, dynamic> namedArgs}) {
     var instance = HT_Instance(interpreter, this, typeArgs: typeArgs?.sublist(0, typeParams.length));
 
     var save = interpreter.curContext;
@@ -174,7 +174,7 @@ class HT_Class extends HT_Namespace {
     var constructor = fetch(initterName, line, column, interpreter, error: false, from: name);
 
     if (constructor is HT_Function) {
-      constructor.call(interpreter, line, column, args ?? [], instance: instance);
+      constructor.call(interpreter, line, column, args ?? [], instance: instance, namedArgs: namedArgs ?? {} );
     }
 
     return instance;
@@ -270,10 +270,10 @@ class HT_Instance extends HT_Namespace {
   }
 
   dynamic invoke(String methodName, int line, int column, Interpreter interpreter,
-      {bool error = true, List<dynamic> args}) {
+      {bool error = true, List<dynamic> args, Map<String, dynamic> namedArgs}) {
     HT_Function method = klass.fetch(methodName, null, null, interpreter, from: klass.fullName);
     if ((method != null) && (!method.funcStmt.isStatic)) {
-      return method.call(interpreter, null, null, args ?? [], instance: this);
+      return method.call(interpreter, null, null, args ?? [], instance: this, namedArgs: namedArgs ?? {});
     }
 
     if (error) throw HTErr_Undefined(methodName, line, column, interpreter.curFileName);

@@ -269,6 +269,11 @@ class Resolver implements ExprVisitor, StmtVisitor {
   }
 
   @override
+  dynamic visitNamedVarExpr(NamedVarExpr expr) {
+    _resolveExpr(expr.value);
+  }
+
+  @override
   dynamic visitImportStmt(ImportStmt stmt) {}
 
   @override
@@ -343,4 +348,6 @@ class Resolver implements ExprVisitor, StmtVisitor {
     _declare(stmt.name, stmt.keyword.line, stmt.keyword.column, define: true);
     _classes.add(stmt);
   }
+
+
 }

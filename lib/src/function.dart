@@ -95,7 +95,7 @@ class HT_Function {
     return result.toString();
   }
 
-  dynamic call(Interpreter interpreter, int line, int column, List<dynamic> args, {HT_Instance instance}) {
+  dynamic call(Interpreter interpreter, int line, int column, List<dynamic> args, {HT_Instance instance, Map<String, dynamic> namedArgs = {}}) {
     assert(args != null);
     dynamic result;
     try {

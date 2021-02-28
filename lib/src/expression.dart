@@ -60,6 +60,9 @@ abstract class ExprVisitor {
 
   /// This表达式
   dynamic visitThisExpr(ThisExpr expr);
+
+  /// 命名参数表达式
+  dynamic visitNamedVarExpr(NamedVarExpr expr);
 }
 
 abstract class Expr {
@@ -381,4 +384,24 @@ class ThisExpr extends Expr {
 
   @override
   Expr clone() => ThisExpr(keyword, fileName);
+}
+
+//函数命名参数表达式
+class NamedVarExpr extends Expr {
+  @override
+  String get type => HT_Lexicon.namedVarExpr;
+
+  @override
+  dynamic accept(ExprVisitor visitor) => visitor.visitNamedVarExpr(this);
+
+  /// 变量名
+  final Token variable;
+
+  /// 变量名、表达式、函数调用
+  final Expr value;
+
+  NamedVarExpr(this.variable, this.value, String fileName) : super(op.line, op.column, fileName);
+
+  @override
+  Expr clone() => NamedVarExpr(variable, value.clone(), fileName);
 }

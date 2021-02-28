@@ -35,9 +35,9 @@ abstract class Hetu {
       }
 
       // load classes and functions in core library.
-      for (final file in coreLibs.keys) {
-        itp.eval(coreLibs[file], fileName: file);
-      }
+      // for (final file in coreLibs.keys) {
+      //   itp.eval(coreLibs[file], fileName: file);
+      // }
     } catch (e) {
       //stdout.write('\x1B[32m');
       print('Hetu init failed!');

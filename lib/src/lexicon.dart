@@ -189,6 +189,7 @@ abstract class HT_Lexicon {
   static const subSetExpr = 'subscript_set_expression';
   static const memberGetExpr = 'member_get_expression';
   static const memberSetExpr = 'member_set_expression';
+  static const namedVarExpr = 'named_var_expression';
 
   static const importStmt = 'import_statement';
   static const varStmt = 'variable_statement';

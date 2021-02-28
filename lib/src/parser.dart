@@ -1,9 +1,9 @@
 import 'errors.dart';
 import 'expression.dart';
+import 'interpreter.dart';
+import 'lexicon.dart';
 import 'statement.dart';
 import 'token.dart';
-import 'lexicon.dart';
-import 'interpreter.dart';
 import 'value.dart';
 
 enum ParseStyle {
@@ -57,7 +57,9 @@ class Parser {
       if (consume) {
         if (curTok.type != tokTypes[i]) {
           if (error) {
-            throw HTErr_Expected(tokTypes[i], curTok.lexeme, curTok.line, curTok.column, _curFileName);
+            throw HTErr_Expected(
+                tokTypes[i], curTok.lexeme, curTok.line, curTok.column,
+                _curFileName);
           }
           return false;
         }
@@ -77,7 +79,8 @@ class Parser {
       return advance(1);
     }
 
-    if (error) throw HTErr_Expected(tokenType, curTok.lexeme, curTok.line, curTok.column, _curFileName);
+    if (error) throw HTErr_Expected(
+        tokenType, curTok.lexeme, curTok.line, curTok.column, _curFileName);
     return Token.EOF;
   }
 
@@ -98,6 +101,7 @@ class Parser {
 
   /// 获得当前Token
   Token get curTok => peek(0);
+
   // {
   // var cur = peek(0);
   // if (cur == env.lexicon.Multiline) {
@@ -107,8 +111,7 @@ class Parser {
   // return cur;
   // }
 
-  List<Stmt> parse(
-    List<Token> tokens, {
+  List<Stmt> parse(List<Token> tokens, {
     String fileName,
     ParseStyle style = ParseStyle.library,
   }) {
@@ -137,7 +140,8 @@ class Parser {
     final type_name = advance(1).lexeme;
     var type_args = <HT_Type>[];
     if (expect([HT_Lexicon.angleLeft], consume: true, error: false)) {
-      while ((curTok.type != HT_Lexicon.angleRight) && (curTok.type != HT_Lexicon.endOfFile)) {
+      while ((curTok.type != HT_Lexicon.angleRight) &&
+          (curTok.type != HT_Lexicon.endOfFile)) {
         type_args.add(_parseTypeId());
         expect([HT_Lexicon.comma], consume: true, error: false);
       }
@@ -258,7 +262,14 @@ class Parser {
     while (true) {
       if (expect([HT_Lexicon.call], consume: true, error: false)) {
         var params = <Expr>[];
-        while ((curTok.type != HT_Lexicon.roundRight) && (curTok.type != HT_Lexicon.endOfFile)) {
+        while ((curTok.type != HT_Lexicon.roundRight) &&
+            (curTok.type != HT_Lexicon.endOfFile)) {
+          //需要判断是否为命名参数
+          if (curTok.type == HT_Lexicon.identifier) {
+            var varName = match(HT_Lexicon.identifier, error: false);
+            expect([HT_Lexicon.colon], consume: true);
+          }
+
           params.add(_parseExpr());
           if (curTok.type != HT_Lexicon.roundRight) {
             expect([HT_Lexicon.comma], consume: true);
@@ -326,7 +337,8 @@ class Parser {
       expect([HT_Lexicon.curlyRight], consume: true);
       return LiteralDictExpr(map_expr, line, col, _curFileName);
     } else {
-      throw HTErr_Unexpected(curTok.lexeme, curTok.line, curTok.column, _curFileName);
+      throw HTErr_Unexpected(
+          curTok.lexeme, curTok.line, curTok.column, _curFileName);
     }
   }
 
@@ -335,7 +347,8 @@ class Parser {
     switch (style) {
       case ParseStyle.library:
         {
-          final is_extern = expect([HT_Lexicon.EXTERNAL], consume: true, error: false);
+          final is_extern = expect(
+              [HT_Lexicon.EXTERNAL], consume: true, error: false);
           if (expect([HT_Lexicon.IMPORT])) {
             return _parseImportStmt();
           } // var变量声明
@@ -349,12 +362,15 @@ class Parser {
             return _parseClassDeclStmt();
           } // 函数声明
           else if (expect([HT_Lexicon.FUN])) {
-            return _parseFuncDeclStmt(FuncStmtType.normal, is_extern: is_extern);
+            return _parseFuncDeclStmt(
+                FuncStmtType.normal, is_extern: is_extern);
           } // 过程声明
           else if (expect([HT_Lexicon.PROC])) {
-            return _parseFuncDeclStmt(FuncStmtType.procedure, is_extern: is_extern);
+            return _parseFuncDeclStmt(
+                FuncStmtType.procedure, is_extern: is_extern);
           } else {
-            throw HTErr_Unexpected(curTok.lexeme, curTok.line, curTok.column, _curFileName);
+            throw HTErr_Unexpected(
+                curTok.lexeme, curTok.line, curTok.column, _curFileName);
           }
         }
         break;
@@ -411,8 +427,10 @@ class Parser {
         break;
       case ParseStyle.classDefinition:
         {
-          final is_extern = expect([HT_Lexicon.EXTERNAL], consume: true, error: false);
-          final is_static = expect([HT_Lexicon.STATIC], consume: true, error: false);
+          final is_extern = expect(
+              [HT_Lexicon.EXTERNAL], consume: true, error: false);
+          final is_static = expect(
+              [HT_Lexicon.STATIC], consume: true, error: false);
           // var变量声明
           if (expect([HT_Lexicon.VAR]) || expect([HT_Lexicon.LET])) {
             return _parseVarStmt(is_static: is_static);
@@ -425,21 +443,29 @@ class Parser {
           } // 构造函数
           // TODO：命名的构造函数
           else if (expect([HT_Lexicon.CONSTRUCT])) {
-            return _parseFuncDeclStmt(FuncStmtType.constructor, is_extern: is_extern, is_static: is_static);
+            return _parseFuncDeclStmt(
+                FuncStmtType.constructor, is_extern: is_extern,
+                is_static: is_static);
           } // setter函数声明
           else if (expect([HT_Lexicon.GET])) {
-            return _parseFuncDeclStmt(FuncStmtType.getter, is_extern: is_extern, is_static: is_static);
+            return _parseFuncDeclStmt(FuncStmtType.getter, is_extern: is_extern,
+                is_static: is_static);
           } // getter函数声明
           else if (expect([HT_Lexicon.SET])) {
-            return _parseFuncDeclStmt(FuncStmtType.setter, is_extern: is_extern, is_static: is_static);
+            return _parseFuncDeclStmt(FuncStmtType.setter, is_extern: is_extern,
+                is_static: is_static);
           } // 成员函数声明
           else if (expect([HT_Lexicon.FUN])) {
-            return _parseFuncDeclStmt(FuncStmtType.method, is_extern: is_extern, is_static: is_static);
+            return _parseFuncDeclStmt(FuncStmtType.method, is_extern: is_extern,
+                is_static: is_static);
           } // 过程声明
           else if (expect([HT_Lexicon.PROC])) {
-            return _parseFuncDeclStmt(FuncStmtType.procedure, is_extern: is_extern, is_static: is_static);
+            return _parseFuncDeclStmt(
+                FuncStmtType.procedure, is_extern: is_extern,
+                is_static: is_static);
           } else {
-            throw HTErr_Unexpected(curTok.lexeme, curTok.line, curTok.column, _curFileName);
+            throw HTErr_Unexpected(
+                curTok.lexeme, curTok.line, curTok.column, _curFileName);
           }
         }
         break;
@@ -449,7 +475,8 @@ class Parser {
 
   List<Stmt> _parseBlock({ParseStyle style = ParseStyle.library}) {
     var stmts = <Stmt>[];
-    while ((curTok.type != HT_Lexicon.curlyRight) && (curTok.type != HT_Lexicon.endOfFile)) {
+    while ((curTok.type != HT_Lexicon.curlyRight) &&
+        (curTok.type != HT_Lexicon.endOfFile)) {
       stmts.add(_parseStmt(style: style));
     }
     expect([HT_Lexicon.curlyRight], consume: true);
@@ -458,7 +485,8 @@ class Parser {
 
   BlockStmt _parseBlockStmt({ParseStyle style = ParseStyle.library}) {
     var stmts = <Stmt>[];
-    while ((curTok.type != HT_Lexicon.curlyRight) && (curTok.type != HT_Lexicon.endOfFile)) {
+    while ((curTok.type != HT_Lexicon.curlyRight) &&
+        (curTok.type != HT_Lexicon.endOfFile)) {
       stmts.add(_parseStmt(style: style));
     }
     expect([HT_Lexicon.curlyRight], consume: true);
@@ -479,7 +507,8 @@ class Parser {
   }
 
   /// 变量声明语句
-  VarDeclStmt _parseVarStmt({bool is_static = false, bool type_inferrence = false, bool is_mutable = true}) {
+  VarDeclStmt _parseVarStmt(
+      {bool is_static = false, bool type_inferrence = false, bool is_mutable = true}) {
     advance(1);
     final name = match(HT_Lexicon.identifier);
     HT_Type decl_type;
@@ -579,7 +608,9 @@ class Parser {
     final i = '__i${internalVarIndex++}';
     list_stmt.add(VarDeclStmt(TokenIdentifier(i, curTok.line, curTok.column),
         declType: HT_Type.number,
-        initializer: ConstExpr(interpreter.addLiteral(0), curTok.line, curTok.column, _curFileName)));
+        initializer: ConstExpr(
+            interpreter.addLiteral(0), curTok.line, curTok.column,
+            _curFileName)));
     // 指针
     var varname = match(HT_Lexicon.identifier);
     var typeid = HT_Type.ANY;
@@ -591,26 +622,38 @@ class Parser {
     var list_obj = _parseExpr();
     // 条件语句
     var get_length =
-        MemberGetExpr(list_obj, TokenIdentifier(HT_Lexicon.length, curTok.line, curTok.column), _curFileName);
-    var condition = BinaryExpr(SymbolExpr(TokenIdentifier(i, curTok.line, curTok.column), _curFileName),
-        Token(HT_Lexicon.lesser, curTok.line, curTok.column), get_length, _curFileName);
+    MemberGetExpr(list_obj,
+        TokenIdentifier(HT_Lexicon.length, curTok.line, curTok.column),
+        _curFileName);
+    var condition = BinaryExpr(SymbolExpr(
+        TokenIdentifier(i, curTok.line, curTok.column), _curFileName),
+        Token(HT_Lexicon.lesser, curTok.line, curTok.column), get_length,
+        _curFileName);
     // 在循环体之前手动插入递增语句和指针语句
     // 按下标取数组元素
     var loop_body = <Stmt>[];
     // 这里一定要复制一个list_obj的表达式，否则在resolve的时候会因为是相同的对象出错，覆盖掉上面那个表达式的位置
     var sub_get_value = SubGetExpr(
-        list_obj.clone(), SymbolExpr(TokenIdentifier(i, curTok.line, curTok.column), _curFileName), _curFileName);
-    var assign_stmt = ExprStmt(AssignExpr(TokenIdentifier(varname.lexeme, curTok.line, curTok.column),
-        Token(HT_Lexicon.assign, curTok.line, curTok.column), sub_get_value, _curFileName));
+        list_obj.clone(), SymbolExpr(
+        TokenIdentifier(i, curTok.line, curTok.column), _curFileName),
+        _curFileName);
+    var assign_stmt = ExprStmt(
+        AssignExpr(TokenIdentifier(varname.lexeme, curTok.line, curTok.column),
+            Token(HT_Lexicon.assign, curTok.line, curTok.column), sub_get_value,
+            _curFileName));
     loop_body.add(assign_stmt);
     // 递增下标变量
     var increment_expr = BinaryExpr(
-        SymbolExpr(TokenIdentifier(i, curTok.line, curTok.column), _curFileName),
+        SymbolExpr(
+            TokenIdentifier(i, curTok.line, curTok.column), _curFileName),
         Token(HT_Lexicon.add, curTok.line, curTok.column),
-        ConstExpr(interpreter.addLiteral(1), curTok.line, curTok.column, _curFileName),
+        ConstExpr(interpreter.addLiteral(1), curTok.line, curTok.column,
+            _curFileName),
         _curFileName);
-    var increment_stmt = ExprStmt(AssignExpr(TokenIdentifier(i, curTok.line, curTok.column),
-        Token(HT_Lexicon.assign, curTok.line, curTok.column), increment_expr, _curFileName));
+    var increment_stmt = ExprStmt(
+        AssignExpr(TokenIdentifier(i, curTok.line, curTok.column),
+            Token(HT_Lexicon.assign, curTok.line, curTok.column),
+            increment_expr, _curFileName));
     loop_body.add(increment_stmt);
     // 循环体
     expect([HT_Lexicon.roundRight], consume: true);
@@ -626,15 +669,23 @@ class Parser {
   List<VarDeclStmt> _parseParameters() {
     var params = <VarDeclStmt>[];
     var optionalStarted = false;
+    var namedStarted = false;
     while ((curTok.type != HT_Lexicon.roundRight) &&
         (curTok.type != HT_Lexicon.squareRight) &&
+        (curTok.type != HT_Lexicon.curlyRight) &&
         (curTok.type != HT_Lexicon.endOfFile)) {
       if (params.isNotEmpty) {
         expect([HT_Lexicon.comma], consume: true, error: false);
       }
       // 可选参数，根据是否有方括号判断，一旦开始了可选参数，则不再增加参数数量arity要求
-      if (!optionalStarted) {
-        optionalStarted = expect([HT_Lexicon.squareLeft], error: false, consume: true);
+      if (!optionalStarted && !namedStarted) {
+        optionalStarted =
+            expect([HT_Lexicon.squareLeft], error: false, consume: true);
+        if (!optionalStarted) {
+          //检查命名参数，根据是否有花括号判断，同可选参数
+          namedStarted =
+              expect([HT_Lexicon.curlyLeft], error: false, consume: true);
+        }
       }
       var name = match(HT_Lexicon.identifier);
       var typeid = HT_Type.ANY;
@@ -643,21 +694,26 @@ class Parser {
       }
 
       Expr initializer;
-      if (optionalStarted) {
+      if (optionalStarted || namedStarted) {
         //参数默认值
         if (expect([HT_Lexicon.assign], error: false, consume: true)) {
           initializer = _parseExpr();
         }
       }
-      params.add(VarDeclStmt(name, declType: typeid, initializer: initializer, isOptional: optionalStarted));
+      params.add(VarDeclStmt(name, declType: typeid,
+          initializer: initializer,
+          isOptional: optionalStarted,
+          isNamed: namedStarted));
     }
 
     if (optionalStarted) expect([HT_Lexicon.squareRight], consume: true);
+    if (namedStarted) expect([HT_Lexicon.curlyRight], consume: true);
     expect([HT_Lexicon.roundRight], consume: true);
     return params;
   }
 
-  FuncDeclStmt _parseFuncDeclStmt(FuncStmtType functype, {bool is_extern = false, bool is_static = false}) {
+  FuncDeclStmt _parseFuncDeclStmt(FuncStmtType functype,
+      {bool is_extern = false, bool is_static = false}) {
     final keyword = advance(1);
     String func_name;
     var typeParams = <String>[];
@@ -665,7 +721,8 @@ class Parser {
       func_name = advance(1).lexeme;
 
       if (expect([HT_Lexicon.angleLeft], consume: true, error: false)) {
-        while ((curTok.type != HT_Lexicon.angleRight) && (curTok.type != HT_Lexicon.endOfFile)) {
+        while ((curTok.type != HT_Lexicon.angleRight) &&
+            (curTok.type != HT_Lexicon.endOfFile)) {
           if (typeParams.isNotEmpty) {
             expect([HT_Lexicon.comma], consume: true);
           }
@@ -708,7 +765,8 @@ class Parser {
     var return_type = HT_Type.ANY;
     if (functype == FuncStmtType.procedure) {
       return_type = HT_Type.VOID;
-    } else if ((functype != FuncStmtType.constructor) && (expect([HT_Lexicon.colon], consume: true, error: false))) {
+    } else if ((functype != FuncStmtType.constructor) &&
+        (expect([HT_Lexicon.colon], consume: true, error: false))) {
       return_type = _parseTypeId();
     }
 
@@ -740,7 +798,8 @@ class Parser {
 
     var typeParams = <String>[];
     if (expect([HT_Lexicon.angleLeft], consume: true, error: false)) {
-      while ((curTok.type != HT_Lexicon.angleRight) && (curTok.type != HT_Lexicon.endOfFile)) {
+      while ((curTok.type != HT_Lexicon.angleRight) &&
+          (curTok.type != HT_Lexicon.endOfFile)) {
         if (typeParams.isNotEmpty) {
           expect([HT_Lexicon.comma], consume: true);
         }
@@ -761,7 +820,8 @@ class Parser {
     var variables = <VarDeclStmt>[];
     var methods = <FuncDeclStmt>[];
     if (curTok.type != HT_Lexicon.curlyRight) {
-      while ((curTok.type != HT_Lexicon.curlyRight) && (curTok.type != HT_Lexicon.endOfFile)) {
+      while ((curTok.type != HT_Lexicon.curlyRight) &&
+          (curTok.type != HT_Lexicon.endOfFile)) {
         var stmt = _parseStmt(style: ParseStyle.classDefinition);
         if (stmt is VarDeclStmt) {
           variables.add(stmt);
@@ -775,7 +835,9 @@ class Parser {
     }
 
     stmt =
-        ClassDeclStmt(keyword, class_name, super_class, super_class_type, variables, methods, typeParams: typeParams);
+        ClassDeclStmt(
+            keyword, class_name, super_class, super_class_type, variables,
+            methods, typeParams: typeParams);
     _curClassName = null;
     return stmt;
   }
