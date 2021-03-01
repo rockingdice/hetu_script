@@ -95,7 +95,7 @@ class HT_Function {
     return result.toString();
   }
 
-  dynamic call(Interpreter interpreter, int line, int column, List<dynamic> args, {HT_Instance instance, Map<String, dynamic> namedArgs = {}}) {
+  dynamic call(Interpreter interpreter, int line, int column, List<dynamic> args, {HT_Instance instance, Map<String, dynamic> namedArgs}) {
     assert(args != null);
     dynamic result;
     try {
@@ -113,7 +113,7 @@ class HT_Function {
           }
         }
 
-        return extern(instance, args ?? []);
+        return extern(instance, args ?? [], namedArgs: namedArgs ?? <String, dynamic>{});
       } else {
         if (funcStmt != null) {
           //_save = _closure;
@@ -147,7 +147,26 @@ class HT_Function {
 
                   arg_value = args[i];
                 } else {
-                  if (var_stmt.initializer != null) arg_value = interpreter.evaluateExpr(var_stmt.initializer);
+                  //检查是否是命名参数
+                  if (var_stmt.isNamed) {
+                    //传入参数是否包含命名参数，如果有则赋值
+                    var arg_name = var_stmt.name.lexeme;
+                    var namedArgValue = namedArgs[arg_name];
+                    if (namedArgValue != null) {
+                      var arg_type = HT_TypeOf(namedArgValue);
+                      if (arg_type.isNotA(arg_type_decl)) {
+                        throw HTErr_ArgType(namedArgValue.toString(), arg_type.toString(), arg_type_decl.toString(), line, column,
+                            interpreter.curFileName);
+                      }
+                      arg_value = namedArgValue;
+                    } else {
+                      //没有提供值的命名参数使用默认值
+                      if (var_stmt.initializer != null) arg_value = interpreter.evaluateExpr(var_stmt.initializer);
+                    }
+                  }
+                  else {
+                    if (var_stmt.initializer != null) arg_value = interpreter.evaluateExpr(var_stmt.initializer);
+                  }
                 }
 
                 _closure.define(var_stmt.name.lexeme, interpreter,

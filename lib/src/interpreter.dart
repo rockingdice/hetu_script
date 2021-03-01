@@ -66,7 +66,6 @@ class Interpreter implements ExprVisitor, StmtVisitor {
   }) {
     curContext = context ?? _globals;
     final tokens = Lexer().lex(content);
-    print('tokens: \n$tokens');
     final statements =
         Parser(this).parse(tokens, fileName: fileName, style: style);
     Resolver(this).resolve(statements, fileName: fileName);
@@ -471,18 +470,23 @@ class Interpreter implements ExprVisitor, StmtVisitor {
     var args = <dynamic>[];
     var namedArgs = <String, dynamic>{};
     for (final arg in expr.args) {
-      if (arg.type )
-      var value = evaluateExpr(arg);
-      args.add(value);
+      if (arg.type == HT_Lexicon.namedVarExpr) {
+        //命名参数
+        var namedArg = arg as NamedVarExpr;
+        namedArgs[namedArg.variable.lexeme] = evaluateExpr(namedArg.value);
+      } else {
+        var value = evaluateExpr(arg);
+        args.add(value);
+      }
     }
 
     if (callee is HT_Function) {
       if (callee.funcStmt.funcType != FuncStmtType.constructor) {
         if (callee.declContext is HT_Instance) {
-          return callee.call(this, expr.line, expr.column, args ?? [],
+          return callee.call(this, expr.line, expr.column, args ?? [], namedArgs: namedArgs,
               instance: callee.declContext);
         } else {
-          return callee.call(this, expr.line, expr.column, args ?? []);
+          return callee.call(this, expr.line, expr.column, args ?? [], namedArgs: namedArgs);
         }
       } else {
         //TODO命名构造函数

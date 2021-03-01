@@ -400,7 +400,7 @@ class NamedVarExpr extends Expr {
   /// 变量名、表达式、函数调用
   final Expr value;
 
-  NamedVarExpr(this.variable, this.value, String fileName) : super(op.line, op.column, fileName);
+  NamedVarExpr(this.variable, this.value, String fileName) : super(variable.line, variable.column, fileName);
 
   @override
   Expr clone() => NamedVarExpr(variable, value.clone(), fileName);

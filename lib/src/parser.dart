@@ -265,12 +265,16 @@ class Parser {
         while ((curTok.type != HT_Lexicon.roundRight) &&
             (curTok.type != HT_Lexicon.endOfFile)) {
           //需要判断是否为命名参数
-          if (curTok.type == HT_Lexicon.identifier) {
+          if (expect([HT_Lexicon.identifier, HT_Lexicon.colon], error: false, consume: false)) {
             var varName = match(HT_Lexicon.identifier, error: false);
-            expect([HT_Lexicon.colon], consume: true);
+            advance(1);
+            var varValue = _parseExpr();
+            var varExpr = NamedVarExpr(varName, varValue, _curFileName);
+            params.add(varExpr);
+          } else {
+            params.add(_parseExpr());
           }
 
-          params.add(_parseExpr());
           if (curTok.type != HT_Lexicon.roundRight) {
             expect([HT_Lexicon.comma], consume: true);
           }
@@ -750,7 +754,7 @@ class Parser {
 
         if (arity != -1) {
           for (var i = 0; i < params.length; ++i) {
-            if (params[i].isOptional) break;
+            if (params[i].isOptional || params[i].isNamed) break;
             ++arity;
           }
         }
