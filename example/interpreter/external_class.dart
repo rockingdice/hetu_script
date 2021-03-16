@@ -14,10 +14,10 @@ class DartPerson {
   }
 }
 
-class DartPersonClassBinding extends HT_ExternClass {
+class DartPersonClassBinding extends HT_ExternNamespace {
   @override
-  dynamic fetch(String varName, {String? from}) {
-    switch (varName) {
+  dynamic fetch(String id) {
+    switch (id) {
       case 'Person':
         return () => DartPersonObjectBinding(DartPerson());
       case 'Person.withName':
@@ -27,17 +27,17 @@ class DartPersonClassBinding extends HT_ExternClass {
       case 'race':
         return DartPerson.race;
       default:
-        throw HT_Error_Undefined(varName);
+        throw HTErr_Undefined(id);
     }
   }
 
   @override
-  void assign(String varName, dynamic value, {String? from}) {
-    switch (varName) {
+  void assign(String id, dynamic value) {
+    switch (id) {
       case 'race':
         return DartPerson.race = value;
       default:
-        throw HT_Error_Undefined(varName);
+        throw HTErr_Undefined(id);
     }
   }
 }
@@ -49,31 +49,31 @@ class DartPersonObjectBinding extends HT_ExternObject<DartPerson> {
   final typeid = HT_TypeId('Person');
 
   @override
-  dynamic fetch(String varName, {String? from}) {
-    switch (varName) {
+  dynamic fetch(String id) {
+    switch (id) {
       case 'name':
         return externObject.name;
       case 'greeting':
         return externObject.greeting;
       default:
-        throw HT_Error_Undefined(varName);
+        throw HTErr_Undefined(id);
     }
   }
 
   @override
-  void assign(String varName, dynamic value, {String? from}) {
-    switch (varName) {
+  void assign(String id, dynamic value) {
+    switch (id) {
       case 'name':
         externObject.name = value;
         break;
       default:
-        throw HT_Error_Undefined(varName);
+        throw HTErr_Undefined(id);
     }
   }
 }
 
 void main() {
-  var hetu = HT_ASTInterpreter();
+  var hetu = HT_Interpreter();
 
   hetu.bindExternalNamespace('Person', DartPersonClassBinding());
 

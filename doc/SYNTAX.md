@@ -149,25 +149,21 @@ fun main {
 }
 ```
 
-In Hetu, function are first class, you can use function as parameter, return value and store them in variables. Example:
+In Hetu, functions are first class, you can use function as parameter, return value and store them in variables. Example:
 
 ```typescript
 fun closure(func) {
   var i = 42
-  return fun () {
-    i = i + 1
-    print(func(i))
-  }
+  return fun () { print(func(i)) }
 }
 
 fun main {
   var func = closure( fun (n) { return n * n } )
-  func()
-  func()
+  func() // Output: 1764
 }
 ```
 
-As shown above, the grammar of literal function expression (anonymous function) are normal function without a name.
+As shown above, the grammar of literal function (anonymous function) are just like normal functions but without a name.
 
 ## Class
 

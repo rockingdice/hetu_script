@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'interpreter.dart';
+import 'common.dart';
 import 'extern_class.dart';
 import 'parser.dart';
 import 'lexicon.dart';
@@ -11,23 +11,15 @@ import 'lexer.dart';
 import 'expression.dart';
 import 'resolver.dart';
 import 'errors.dart';
-import 'read_file.dart';
-import 'context.dart';
 
-class HT_VM implements Interpreter {
+class HT_VM implements CodeRunner {
   static var _fileIndex = 0;
 
   final bool debugMode;
   final ReadFileMethod readFileMethod;
 
-  late int _curLine;
-  @override
-  int get curLine => _curLine;
-  late int _curColumn;
-  @override
-  int get curColumn => _curColumn;
-  // late List<int> _curFileVersion;
   late String _curFileName;
+  // late List<int> _curFileVersion;
   late String _curDirectory;
   @override
   String? get curFileName => _curFileName;
@@ -35,7 +27,7 @@ class HT_VM implements Interpreter {
   String? get curDirectory => _curDirectory;
 
   // final _evaledFiles = <String>[];
-  late final Map<ASTNode, int> _distances;
+  late final Map<Expr, int> _distances;
 
   late Uint8List _bytes;
   int _ip = 0; // instruction pointer
@@ -54,9 +46,9 @@ class HT_VM implements Interpreter {
   });
 
   @override
-  void bindExternalNamespace(String id, HT_ExternClass namespace) {}
+  void bindExternalNamespace(String id, HT_ExternNamespace namespace) {}
   @override
-  HT_ExternClass fetchExternalClass(String id) => throw 'error';
+  HT_ExternNamespace fetchExternalClass(String id) => throw 'error';
   @override
   void bindExternalFunction(String id, Function function) {}
   @override
@@ -86,12 +78,12 @@ class HT_VM implements Interpreter {
     _curFileName = fileName ?? '__anonymousScript' + (_fileIndex++).toString();
 
     if (debugMode) {
-      final tokens = Lexer().lex(content, _curFileName);
+      final tokens = Lexer().lex(content);
       final statements = Parser(this).parse(tokens, _context, _curFileName, style);
-      _distances = Resolver().resolve(statements, _curFileName, libName: libName);
+      _distances = Resolver(this).resolve(statements, _curFileName, libName: libName);
       _bytes = Compiler().compileAST(statements, _context, _curFileName);
     } else {
-      final tokens = Lexer().lex(content, _curFileName);
+      final tokens = Lexer().lex(content);
       _bytes = Compiler().compileTokens(tokens);
     }
 
@@ -102,7 +94,7 @@ class HT_VM implements Interpreter {
     _ip = ip;
     // final signature = _bytes.sublist(0, 4);
     // if (signature.buffer.asByteData().getUint32(0) != Compiler.hetuSignature) {
-    //   throw HT_Error_Signature(_curFileName);
+    //   throw HTErr_Signature(_curFileName);
     // }
 
     // final mainVersion = _bytes[4];
@@ -240,7 +232,8 @@ class HT_VM implements Interpreter {
     // TODO: line 和 column
     switch (err_type) {
       case HT_ErrorCode.binOp:
-        throw HT_Error_UndefinedBinaryOperator(_register[0].toString(), _register[1].toString(), HT_Lexicon.add);
+        throw HTErr_UndefinedBinaryOperator(
+            _register[0].toString(), _register[1].toString(), HT_Lexicon.add, curFileName);
     }
   }
 }

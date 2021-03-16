@@ -1,14 +1,10 @@
 import 'errors.dart';
 import 'lexicon.dart';
 import 'type.dart';
-import 'declaration.dart';
-import 'object.dart';
-import 'context.dart';
-import 'ast_interpreter.dart';
+import 'value.dart';
+import 'common.dart';
 
-class HT_Namespace extends HT_Object with HT_Context, ASTInterpreterRef {
-  static int spaceIndex = 0;
-
+class HT_Namespace extends HT_Value with HT_Context {
   static String getFullId(String id, HT_Namespace space) {
     var fullName = id;
     var cur_space = space.closure;
@@ -18,11 +14,6 @@ class HT_Namespace extends HT_Object with HT_Context, ASTInterpreterRef {
     }
     return fullName;
   }
-
-  @override
-  final typeid = HT_TypeId.namespace;
-
-  late final String id;
 
   @override
   String toString() => '${HT_Lexicon.NAMESPACE} $id';
@@ -38,13 +29,12 @@ class HT_Namespace extends HT_Object with HT_Context, ASTInterpreterRef {
     _fullName = getFullId(id, _closure!);
   }
 
-  HT_Namespace(
-    HT_ASTInterpreter interpreter, {
+  static int spaceIndex = 0;
+
+  HT_Namespace({
     String? id,
     HT_Namespace? closure,
-  }) : super() {
-    this.id = id ?? '${HT_Lexicon.anonymousNamespace}${spaceIndex++}';
-    this.interpreter = interpreter;
+  }) : super(id ?? '${HT_Lexicon.anonymousNamespace}${spaceIndex++}') {
     _fullName = getFullId(this.id, this);
     _closure = closure;
   }
@@ -71,8 +61,10 @@ class HT_Namespace extends HT_Object with HT_Context, ASTInterpreterRef {
 
   /// 在当前命名空间定义一个变量的类型
   @override
-  void define(String varName,
-      {HT_TypeId? declType,
+  void define(String varName, CodeRunner interpreter,
+      {int? line,
+      int? column,
+      HT_TypeId? declType,
       dynamic value,
       bool isExtern = false,
       bool isImmutable = false,
@@ -90,41 +82,46 @@ class HT_Namespace extends HT_Object with HT_Context, ASTInterpreterRef {
       defs[varName] = HT_Declaration(varName,
           declType: declType, value: value, isExtern: isExtern, isNullable: isNullable, isImmutable: isImmutable);
     } else {
-      throw HT_Error_Type(varName, val_type.toString(), declType.toString());
+      throw HTErr_Type(varName, val_type.toString(), declType.toString(), interpreter.curFileName, line, column);
     }
   }
 
   @override
-  dynamic fetch(String varName, {String? from}) {
-    if (fullName.startsWith(HT_Lexicon.underscore) && !from!.startsWith(fullName)) {
-      throw HT_Error_PrivateDecl(fullName);
-    } else if (varName.startsWith(HT_Lexicon.underscore) && !from!.startsWith(fullName)) {
-      throw HT_Error_PrivateMember(varName);
+  dynamic fetch(String varName, int? line, int? column, CodeRunner interpreter,
+      {bool error = true, String from = HT_Lexicon.global, bool recursive = true}) {
+    if (fullName.startsWith(HT_Lexicon.underscore) && !from.startsWith(fullName)) {
+      throw HTErr_PrivateDecl(fullName, interpreter.curFileName, line, column);
+    } else if (varName.startsWith(HT_Lexicon.underscore) && !from.startsWith(fullName)) {
+      throw HTErr_PrivateMember(varName, interpreter.curFileName, line, column);
     }
 
     if (defs.containsKey(varName)) {
       return defs[varName]!.value;
     }
 
-    if (closure != null) {
-      return closure!.fetch(varName, from: from);
+    if (recursive && (closure != null)) {
+      return closure!.fetch(varName, line, column, interpreter, error: error, from: from);
     }
 
-    throw HT_Error_Undefined(varName);
+    if (error) throw HTErr_Undefined(varName, interpreter.curFileName, line, column);
+
+    return null;
   }
 
-  dynamic fetchAt(String varName, int distance, {String? from}) {
+  dynamic fetchAt(String varName, int distance, int? line, int? column, CodeRunner interpreter,
+      {bool error = true, String from = HT_Lexicon.global, bool recursive = true}) {
     var space = closureAt(distance);
-    return space.fetch(varName, from: space.fullName);
+    return space.fetch(varName, line, column, interpreter, error: error, from: space.fullName, recursive: false);
   }
 
   /// 向一个已经定义的变量赋值
   @override
-  void assign(String varName, dynamic value, {String? from}) {
-    if (fullName.startsWith(HT_Lexicon.underscore) && !from!.startsWith(fullName)) {
-      throw HT_Error_PrivateDecl(fullName);
-    } else if (varName.startsWith(HT_Lexicon.underscore) && !from!.startsWith(fullName)) {
-      throw HT_Error_PrivateMember(varName);
+  void assign(String varName, dynamic value, int? line, int? column, CodeRunner interpreter,
+      {bool error = true, String from = HT_Lexicon.global, bool recursive = true}) {
+    if (fullName.startsWith(HT_Lexicon.underscore) && !from.startsWith(fullName)) {
+      throw HTErr_PrivateDecl(fullName, interpreter.curFileName, line, column);
+    } else if (varName.startsWith(HT_Lexicon.underscore) && !from.startsWith(fullName)) {
+      throw HTErr_PrivateMember(varName, interpreter.curFileName, line, column);
     }
 
     if (defs.containsKey(varName)) {
@@ -141,23 +138,20 @@ class HT_Namespace extends HT_Object with HT_Context, ASTInterpreterRef {
             return;
           }
         }
-        throw HT_Error_Immutable(varName);
+        throw HTErr_Immutable(varName, interpreter.curFileName, line, column);
       }
-      throw HT_Error_Type(varName, var_type.toString(), decl_type.toString());
-    } else if (closure != null) {
-      closure!.assign(varName, value, from: from);
+      throw HTErr_Type(varName, var_type.toString(), decl_type.toString(), interpreter.curFileName, line, column);
+    } else if (recursive && (closure != null)) {
+      closure!.assign(varName, value, line, column, interpreter, from: from);
       return;
     }
 
-    throw HT_Error_Undefined(varName);
+    if (error) throw HTErr_Undefined(varName, interpreter.curFileName, line, column);
   }
 
-  void assignAt(String varName, dynamic value, int distance, {String? from}) {
+  void assignAt(String varName, dynamic value, int distance, int? line, int? column, CodeRunner interpreter,
+      {String from = HT_Lexicon.global, bool recursive = true}) {
     var space = closureAt(distance);
-    space.assign(
-      varName,
-      value,
-      from: space.fullName,
-    );
+    space.assign(varName, value, line, column, interpreter, from: space.fullName, recursive: false);
   }
 }

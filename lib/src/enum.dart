@@ -1,9 +1,10 @@
+import 'common.dart';
 import 'type.dart';
-import 'object.dart';
+import 'value.dart';
 import 'lexicon.dart';
 import 'errors.dart';
 
-class HT_Enum extends HT_NamedObject {
+class HT_Enum extends HT_Value with HT_Type {
   @override
   final HT_TypeId typeid = HT_TypeId.ENUM;
 
@@ -15,8 +16,10 @@ class HT_Enum extends HT_NamedObject {
   bool contains(String varName) => defs.containsKey(varName);
 
   @override
-  void define(String varName,
-      {HT_TypeId? declType,
+  void define(String varName, CodeRunner interpreter,
+      {int? line,
+      int? column,
+      HT_TypeId? declType,
       dynamic value,
       bool isExtern = false,
       bool isImmutable = false,
@@ -27,31 +30,35 @@ class HT_Enum extends HT_NamedObject {
     if (!defs.containsKey(varName)) {
       return defs[varName] = value;
     }
-    throw HT_Error_Defined_Runtime(id);
+    throw HTErr_Defined(id, interpreter.curFileName, line, column);
   }
 
   @override
-  dynamic fetch(String varName, {String? from}) {
+  dynamic fetch(String varName, int? line, int? column, CodeRunner interpreter,
+      {bool error = true, String from = HT_Lexicon.global, bool recursive = true}) {
     if (defs.containsKey(varName)) {
       return defs[varName]!;
-    } else if (varName == HT_Lexicon.values) {
-      return defs.values;
     }
-    throw HT_Error_Undefined(varName);
+    throw HTErr_Undefined(varName, interpreter.curFileName, line, column);
   }
 
   @override
-  void assign(String varName, dynamic value, {String? from}) {
+  void assign(String varName, dynamic value, int? line, int? column, CodeRunner interpreter,
+      {bool error = true, String from = HT_Lexicon.global, bool recursive = true}) {
     if (defs.containsKey(varName)) {
-      throw HT_Error_Immutable(varName);
+      throw HTErr_Immutable(varName, interpreter.curFileName, line, column);
     }
-    throw HT_Error_Undefined(varName);
+    throw HTErr_Undefined(varName, interpreter.curFileName, line, column);
   }
 }
 
-class HT_EnumItem extends HT_NamedObject {
-  @override
-  final HT_TypeId typeid;
+class HT_EnumItem with HT_Type {
+  late final HT_Enum parent;
 
-  HT_EnumItem(String id, this.typeid) : super(id);
+  final String id;
+
+  @override
+  HT_TypeId get typeid => parent.typeid;
+
+  HT_EnumItem(this.id, this.parent);
 }
