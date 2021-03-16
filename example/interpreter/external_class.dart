@@ -18,10 +18,10 @@ class DartPersonClassBinding extends HT_ExternNamespace {
   @override
   dynamic fetch(String id) {
     switch (id) {
-      case 'Person':
-        return () => DartPersonObjectBinding(DartPerson());
-      case 'Person.withName':
-        return ([name = 'some guy']) => DartPersonObjectBinding(DartPerson.withName(name));
+      case 'DartPerson':
+        return () => DartPerson();
+      case 'DartPerson.withName':
+        return ([name = 'some guy']) => DartPerson.withName(name);
       case 'meaning':
         return (int n) => DartPerson.meaning(n);
       case 'race':
@@ -40,45 +40,51 @@ class DartPersonClassBinding extends HT_ExternNamespace {
         throw HTErr_Undefined(id);
     }
   }
-}
-
-class DartPersonObjectBinding extends HT_ExternObject<DartPerson> {
-  DartPersonObjectBinding(DartPerson value) : super(value);
-
   @override
-  final typeid = HT_TypeId('Person');
-
-  @override
-  dynamic fetch(String id) {
-    switch (id) {
-      case 'name':
-        return externObject.name;
-      case 'greeting':
-        return externObject.greeting;
-      default:
-        throw HTErr_Undefined(id);
-    }
+  void instanceFetch(dynamic instance, String id) {
+    var i = instance as DartPerson;
+    return i.fetch(id);
   }
 
   @override
-  void assign(String id, dynamic value) {
-    switch (id) {
+  void instanceAssign(dynamic instance, String id, dynamic value) {
+    var i = instance as DartPerson;
+    i.assign(id, value);
+  }
+}
+
+extension DartPersonBinding on DartPerson {
+  dynamic fetch(String varName, {String? from}) {
+    switch (varName) {
       case 'name':
-        externObject.name = value;
+        return name;
+      case 'greeting':
+        return greeting;
+      default:
+        throw HTErr_Undefined(varName);
+    }
+  }
+  void assign(String varName, dynamic value, {String? from}) {
+    switch (varName) {
+      case 'name':
+        name = value;
         break;
       default:
-        throw HTErr_Undefined(id);
+        throw HTErr_Undefined(varName);
     }
   }
 }
 
-void main() {
-  var hetu = HT_Interpreter();
 
-  hetu.bindExternalNamespace('Person', DartPersonClassBinding());
+void main() {
+  var d = DartPerson();
+  var n = d.fetch('name');
+  print('name: $n');
+  var hetu = HT_Interpreter();
+  hetu.bindExternalNamespace('DartPerson', DartPersonClassBinding());
 
   hetu.eval('''
-      external class Person {
+      external class DartPerson {
         static var race
         static fun meaning (n: num)
         construct
@@ -88,18 +94,20 @@ void main() {
         fun greeting
       }
       fun main {
-        var p1 = Person()
+        var p1 = DartPerson()
         print(p1.name)
-        var p2 = Person.withName('Jimmy')
+        p1.name = 'Alice'
+        print(p1.name)
+        var p2 = DartPerson.withName('Jimmy')
         print(p2.name)
         p2.name = 'John'
         p2.greeting();
 
-        print('My race is', Person.race)
-        Person.race = 'Reptile'
-        print('Oh no! My race turned into', Person.race)
+        print('My race is', DartPerson.race)
+        DartPerson.race = 'Reptile'
+        print('Oh no! My race turned into', DartPerson.race)
 
-        print(Person.meaning(42))
+        print(DartPerson.meaning(42))
       }
       ''', invokeFunc: 'main');
 }

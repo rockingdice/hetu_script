@@ -13,6 +13,11 @@ abstract class HT_ExternNamespace {
   dynamic fetch(String id) => throw HTErr_Undefined(id);
 
   void assign(String id, dynamic value) => throw HTErr_Undefined(id);
+
+
+  void instanceFetch(dynamic instance, String id) => throw HTErr_Undefined(id);
+
+  void instanceAssign(dynamic instance, String id, dynamic value) => throw HTErr_Undefined(id);
 }
 
 abstract class HT_Extern_Global {

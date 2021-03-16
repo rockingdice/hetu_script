@@ -575,8 +575,10 @@ class HT_Interpreter with Binding implements CodeRunner, ExprVisitor, StmtVisito
       return object.fetch(expr.key.lexeme, expr.line, expr.column, this, from: curNamespace.fullName);
     }
     //如果是Dart对象
-    else if (object is HT_ExternObject) {
-      return object.fetch(expr.key.lexeme);
+    else if (object != null) {
+      var id = object.runtimeType.toString();
+      var externClass = fetchExternalClass(id);
+      return externClass.instanceFetch(object, expr.key.lexeme);
     }
 
     throw HTErr_Get(object.toString(), expr.fileName, expr.line, expr.column);
@@ -604,8 +606,10 @@ class HT_Interpreter with Binding implements CodeRunner, ExprVisitor, StmtVisito
       return value;
     }
     //如果是Dart对象
-    else if (object is HT_ExternObject) {
-      return object.assign(expr.key.lexeme, value);
+    else if (object != null) {
+      var id = object.runtimeType.toString();
+      var externClass = fetchExternalClass(id);
+      return externClass.instanceAssign(object, expr.key.lexeme, value);
     }
 
     throw HTErr_Get(object.toString(), expr.fileName, expr.key.line, expr.key.column);
